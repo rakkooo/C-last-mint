@@ -1,29 +1,3 @@
-WLファイル更新
-public/merkle/wl_proof.json（必要なら root.json も）を差し替え
-.env.local の NEXT_PUBLIC_PROOF_VERSION を日付や連番で更新（例: 1 → 2、2025-10-08 → 2025-10-09）→ ローカル再起動 or ハードリロード
-ルート一致確認はフロントの自己検証で自動ブロックしますが、念のためオンチェーンの phases(id).root と一致しているか確認
-Alchemyキー
-ALCHEMY_NFT_API_KEY が設定済みか（サーバ側ENV。公開用の NEXT_PUBLIC_... は不要）
-過度な連打を避けるため、現在 /api/owned-check は30秒メモリキャッシュ、/api/owned-ids は都度取得（上限10件）です。必要があれば /api/owned-ids 側にも短期キャッシュ追加可能
-コントラ設定
-NEXT_PUBLIC_NFT_CONTRACT_ADDRESS が本番のアドレス
-Burn-to-Mint対象のコレクションがコントラクト側でも許可済み（isAllowedBurnCollection）であること
-UI動作
-コレクション切替→IDプルダウンが最大10件（昇順）で表示
-未保有コレクションではID取得を発火しない（「No NFTs in this collection」）
-Burn確認の画像とコレクション画像が表示される（IPFSは現状のゲートウェイでOK）
-気になる/改善余地（任意）
-
-所有チェック中の表示
-既に「Not Eligible」をローディング中は出さないようにしましたが、必要なら「Checking eligibility…」等の中立表示に差し替え可能
-IPFSゲートウェイ
-さらに速度を求める場合はゲートウェイの切替（Cloudflare等）やピン止め/CDNの利用を検討
-失敗時のメッセージ
-Alchemy API失敗時もUIは破綻しないようにしていますが、より詳細なメッセージを出すことも可能
-結論
-
-本番に向けては「NFT差し替え（メタ/画像）」「Burn Testの削除」「Proof差し替え＋ENVのバージョン更新」の3点で概ねOKです。
-追加でやるなら、APIの短期キャッシュ強化（owned-ids側）と、中立表示の文言調整くらいです。必要ならすぐ入れます。
 # C's Family NFT Mint (Monad Testnet)
 
 本リポジトリは Monad Testnet 上の NFT ミントサイトです。WL（Merkle）対応、Burn-to-Mint、Alchemy ベースの所有ID自動取得、IPFS 画像表示などを備えています。運用・引き継ぎ・デプロイ時の確認事項を以下にまとめます。
