@@ -92,7 +92,7 @@ pnpm dev
    git commit -m "init: monad nft mint"
    git branch -M main
    git remote add origin <YOUR_REPO_URL>
-  git push -u origin main
+   git push -u origin main
   ```
 3. Vercel で New Project → GitHub を接続 → 本リポジトリを選択
 4. 環境変数を設定（上記参照）
