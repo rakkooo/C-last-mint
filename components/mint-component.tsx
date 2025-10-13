@@ -770,7 +770,7 @@ export function MintComponent() {
               C's Family GTD NFT Version 2
             </CardTitle>
             {isConnected ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 ml-auto">
                 <div className="px-5 py-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl text-sm font-bold border border-purple-200/50 dark:border-purple-800/50 shadow-lg">
                   {address?.slice(0, 6)}...{address?.slice(-4)}
                 </div>
@@ -788,7 +788,7 @@ export function MintComponent() {
               <Button
                 onClick={() => open()}
                 size="lg"
-                className="gap-2 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all rounded-2xl px-8 py-6 text-lg font-bold"
+                className="ml-auto gap-2 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all rounded-2xl px-8 py-6 text-lg font-bold"
               >
                 <Wallet className="h-5 w-5" />
                 Connect Wallet
