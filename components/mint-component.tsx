@@ -467,6 +467,34 @@ export function MintComponent() {
     }
 
     try {
+      // Preflight: re-check remaining mints on-chain just before sending
+      try {
+        const pre = (await publicClient.readContract({
+          address: NFT_CONTRACT_ADDRESS,
+          abi: MONAD_PHASED_NFT_ABI,
+          functionName: "getRemainingMints",
+          args: [
+            activePhaseId,
+            address!,
+            isWhitelistPhase ? BigInt(maxAllowed) : BigInt(0),
+          ],
+        })) as bigint
+        const allowedNow = Number(pre)
+        if (!Number.isFinite(allowedNow) || allowedNow <= 0) {
+          toast.error("You have reached the mint limit.")
+          return
+        }
+        if (mintQuantity > allowedNow) {
+          setMintQuantity(allowedNow)
+          toast.error("Selected quantity exceeds the allowed maximum.")
+          return
+        }
+      } catch {
+        // If preflight fails, block to avoid sending stale-guarded tx
+        toast.error("Unable to verify allowance. Please try again.")
+        return
+      }
+
       // Client-side self verification of merkle proof (if WL phase)
       if (isWhitelistPhase) {
         if (!merkleProof || merkleProof.length === 0 || maxAllowed <= 0) {
@@ -525,9 +553,16 @@ export function MintComponent() {
       }
 
       showMintSuccessToast(hash, details)
-      refetch()
-      refetchMintedAmount()
-      if (maxAllowed > 0) refetchRemainingMints()
+      // Refresh contract reads and wait before re-enabling
+      try {
+        await Promise.all([
+          refetch(),
+          refetchMintedAmount(),
+          maxAllowed > 0 ? refetchRemainingMints() : Promise.resolve(null),
+        ])
+      } catch {
+        /* noop */
+      }
     } catch (error) {
       console.error("Mint failed", error)
       toast.error(getFriendlyErrorMessage(error), { duration: 6000 })
@@ -625,10 +660,17 @@ export function MintComponent() {
 
       setSelectedBurnTokenId("")
       setManualTokenId("")
-      refetch()
-      refetchMintedAmount()
-      if (maxAllowed > 0) refetchRemainingMints()
-      refetchApproval()
+      // Refresh reads (including remaining mints, which consider supply)
+      try {
+        await Promise.all([
+          refetch(),
+          refetchMintedAmount(),
+          maxAllowed > 0 ? refetchRemainingMints() : Promise.resolve(null),
+          (async () => { await refetchApproval() })(),
+        ])
+      } catch {
+        /* noop */
+      }
     } catch (error) {
       console.error("Burn to mint failed", error)
       toast.error(getFriendlyErrorMessage(error), { duration: 6000 })
@@ -641,12 +683,9 @@ export function MintComponent() {
   const isSoldOut = phaseData ? phaseData[3] >= phaseData[2] : false
   const isWhitelistPhase = Boolean(activePhase.proofFile)
   const isEligible = isWhitelistPhase ? maxAllowed > 0 : true
+  // Safe fallback: if remainingMints is not yet fetched, treat as 0 to avoid enabling premature sends
   const rawRemainingMints =
-    remainingMints !== undefined
-      ? Number(remainingMints)
-      : isWhitelistPhase
-        ? maxAllowed - Number(mintedAmount || 0)
-        : activePhase.maxPerTx
+    remainingMints !== undefined ? Number(remainingMints) : 0
   const userRemainingMints = Number.isFinite(rawRemainingMints) ? Math.max(0, rawRemainingMints) : 0
   const hasMintedMax = isEligible && userRemainingMints <= 0
 
@@ -728,7 +767,7 @@ export function MintComponent() {
         <CardHeader className="space-y-6 pb-8 bg-gradient-to-br from-purple-50/50 via-pink-50/50 to-purple-50/50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-purple-950/30">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <CardTitle className="text-4xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
-              NFT Mint
+              C's Family GTD NFT Version 2
             </CardTitle>
             {isConnected ? (
               <div className="flex items-center gap-3">
@@ -756,6 +795,11 @@ export function MintComponent() {
               </Button>
             )}
           </div>
+
+          {/* Subtitle / description under the title */}
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            C's Family NFT will be airdropped on mainnet to wallets holding this GTD NFT.
+          </p>
 
           {isWrongNetwork && (
             <Alert variant="destructive">
