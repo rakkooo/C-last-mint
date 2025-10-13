@@ -764,10 +764,10 @@ export function MintComponent() {
   return (
     <div className="w-full max-w-3xl mx-auto">
       <Card className="shadow-2xl border-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl overflow-hidden">
-        <CardHeader className="space-y-6 pb-8 bg-gradient-to-br from-purple-50/50 via-pink-50/50 to-purple-50/50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-purple-950/30">
+        <CardHeader className="space-y-4 pb-4 bg-gradient-to-br from-purple-50/50 via-pink-50/50 to-purple-50/50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-purple-950/30">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <CardTitle className="text-4xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
-              C's Family GTD NFT Version 2
+              C's Family GTD NFT
             </CardTitle>
             {isConnected ? (
               <div className="flex items-center gap-3 ml-auto">
@@ -799,6 +799,8 @@ export function MintComponent() {
           {/* Subtitle / description under the title */}
           <p className="text-sm text-gray-600 dark:text-gray-400">
             C's Family NFT will be airdropped on mainnet to wallets holding this GTD NFT.
+            <br />
+            WL: Version2
           </p>
 
           {isWrongNetwork && (
