@@ -800,7 +800,7 @@ export function MintComponent() {
           <p className="text-sm text-gray-600 dark:text-gray-400">
             C's Family NFT will be airdropped on mainnet to wallets holding this GTD NFT.
             <br />
-            WL: Version2
+            WL: Version3
           </p>
 
           {isWrongNetwork && (
