@@ -102,3 +102,27 @@ pnpm dev
 
 ## ライセンス
 社内/私用プロジェクト想定。必要に応じて追記してください。
+
+手順
+
+WLリストCSVを用意する（列: address, amount/maxAllowed。アドレスは0x形式）。
+証明生成を実行: node scripts/generate-merkle-proof.js <path/to/wl.csv> public/merkle
+出力: public/merkle/root.json, public/merkle/proofs.json, public/merkle/leaves.json
+public/merkle/proofs.json を public/merkle/wl_proof.json にリネーム
+コントラクトのルート更新（必須）
+画面のAdmin Panelで Phase ID（WL=0想定）を選び、public/merkle/root.json の root を「Merkle Root」に貼り付けて Update
+もしくは直接 setPhase(id, price, root, cap, maxPerTx, start, end) を呼ぶ
+フロントのキャッシュ対策（必須）
+.env.local の NEXT_PUBLIC_PROOF_VERSION を新しい値に更新（連番や日付）
+ローカルは再起動、本番は再デプロイ。ブラウザはハードリロード
+ルート整合性の確認（推奨）
+コントラクトの phases(id).root と public/merkle/root.json の root が一致していること
+（任意）lib/config.ts の PHASES_CONFIG.wl.root も新ルートに更新しておく
+動作確認
+WLアドレスで接続し、/merkle/wl_proof.json に自身のアドレス（小文字）が存在し maxAllowed/proof が取れること
+ミント直前の自己検証で「Proof mismatch」が出ないこと
+非WLアドレスでは弾かれることを確認
+補足
+
+wl_proof.json に root を同梱してもOK（{ root, entries } 形式）。同梱しない場合は public/merkle/root.json を併用してください。
+生成は sortPairs: true 前提（既定のスクリプト設定のままでOK）。
