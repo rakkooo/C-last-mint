@@ -818,28 +818,55 @@ export function MintComponent() {
           )}
         </CardHeader>
 
-        <CardContent className="space-y-8 p-8">
-          <div className="grid grid-cols-1 gap-6">
-            <div className="p-8 rounded-3xl bg-gradient-to-br from-purple-100 via-pink-100 to-purple-100 dark:from-purple-900/50 dark:via-pink-900/50 dark:to-purple-900/50 border-2 border-purple-200/50 dark:border-purple-800/50 shadow-xl">
-              <div className="flex justify-between items-center">
-                <span className="text-base font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Total Minted</span>
-                <span className="text-5xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
-                  {totalMinted}
-                </span>
-              </div>
+      <CardContent className="space-y-8 p-8">
+        <div className="grid grid-cols-1 gap-6">
+          <div className="p-8 rounded-3xl bg-gradient-to-br from-purple-100 via-pink-100 to-purple-100 dark:from-purple-900/50 dark:via-pink-900/50 dark:to-purple-900/50 border-2 border-purple-200/50 dark:border-purple-800/50 shadow-xl">
+            <div className="flex justify-between items-center">
+              <span className="text-base font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                Total Minted
+              </span>
+              <span className="text-5xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
+                {totalMinted}
+              </span>
             </div>
-
-            {isActive && timeRemaining > 0 && (
-              <div className="flex items-center justify-center gap-3 text-base font-bold text-gray-700 dark:text-gray-300 p-6 rounded-3xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg">
-                <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                <span>
-                  Phase ends in: <strong className="text-blue-600 dark:text-blue-400">{formatDuration(timeRemaining)}</strong>
-                </span>
-              </div>
-            )}
           </div>
 
-          {!isConnected ? (
+          {/* User GTD status: minted / total allocation */}
+          {isConnected && userTotalCap > 0 && (
+            <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-50 to-lime-50 dark:from-emerald-900/40 dark:to-lime-900/40 border-2 border-emerald-200/60 dark:border-emerald-700/60 shadow-lg flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/90">
+                  <CheckCircle className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-200 uppercase tracking-wide">
+                    Your GTD Status
+                  </span>
+                  <span className="text-sm text-gray-700 dark:text-gray-200">
+                    You currently hold
+                  </span>
+                </div>
+              </div>
+              <div className="text-2xl font-black text-emerald-600 dark:text-emerald-300">
+                {mintedCount} / {userTotalCap}
+              </div>
+            </div>
+          )}
+
+          {isActive && timeRemaining > 0 && (
+            <div className="flex items-center justify-center gap-3 text-base font-bold text-gray-700 dark:text-gray-300 p-6 rounded-3xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg">
+              <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <span>
+                Phase ends in:{" "}
+                <strong className="text-blue-600 dark:text-blue-400">
+                  {formatDuration(timeRemaining)}
+                </strong>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {!isConnected ? (
             <div className="text-center py-16">
               <Wallet className="h-20 w-20 mx-auto mb-6 text-purple-400 dark:text-purple-600" />
               <p className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-3">Connect Your Wallet</p>
