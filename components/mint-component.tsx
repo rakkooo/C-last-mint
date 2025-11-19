@@ -696,8 +696,14 @@ export function MintComponent() {
     [isConnected, address],
   )
 
+  // User mint status for UX: numerator = already minted (held) in this phase,
+  // denominator = total allocation (minted + remaining mints)
+  const mintedCount = mintedAmount !== undefined ? Number(mintedAmount) : 0
+  const userTotalCap = mintedCount + userRemainingMints
+
   const phaseMaxPerTx = Math.max(0, phaseData ? Number(phaseData[4]) : activePhase.maxPerTx)
   const maxSelectableMint = isEligible ? Math.max(0, Math.min(userRemainingMints, phaseMaxPerTx)) : 0
+
   const mintOptions = useMemo(() => {
     if (maxSelectableMint <= 0) return []
     return Array.from({ length: maxSelectableMint }, (_, i) => i + 1)
