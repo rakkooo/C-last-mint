@@ -696,13 +696,24 @@ export function MintComponent() {
     [isConnected, address],
   )
 
-  // User mint status for UX: numerator = already minted (held) in this phase,
-  // denominator = total allocation (minted + remaining mints)
-  const mintedCount = mintedAmount !== undefined ? Number(mintedAmount) : 0
-  const userTotalCap = mintedCount + userRemainingMints
+  // UX: display "owned / max" for the connected wallet.
+  // WL phase: we already know "maxAllowed" and "userRemainingMints"
+  //   minted = maxAllowed - userRemainingMints
+  //   total cap = maxAllowed
+  // non-WL phase: fall back to on-chain mintedAmount + remainingMints
+  const mintedCount = isWhitelistPhase
+    ? Math.max(0, Math.min(maxAllowed, maxAllowed - userRemainingMints))
+    : mintedAmount !== undefined
+      ? Number(mintedAmount)
+      : 0
+
+  const userTotalCap = isWhitelistPhase
+    ? maxAllowed
+    : mintedCount + userRemainingMints
 
   const phaseMaxPerTx = Math.max(0, phaseData ? Number(phaseData[4]) : activePhase.maxPerTx)
   const maxSelectableMint = isEligible ? Math.max(0, Math.min(userRemainingMints, phaseMaxPerTx)) : 0
+
 
   const mintOptions = useMemo(() => {
     if (maxSelectableMint <= 0) return []
@@ -818,6 +829,7 @@ export function MintComponent() {
 
       <CardContent className="space-y-8 p-8">
         <div className="grid grid-cols-1 gap-6">
+          {/* Total minted across the collection */}
           <div className="p-8 rounded-3xl bg-gradient-to-br from-purple-100 via-pink-100 to-purple-100 dark:from-purple-900/50 dark:via-pink-900/50 dark:to-purple-900/50 border-2 border-purple-200/50 dark:border-purple-800/50 shadow-xl">
             <div className="flex justify-between items-center">
               <span className="text-base font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -829,7 +841,7 @@ export function MintComponent() {
             </div>
           </div>
 
-          {/* User GTD status: minted / total allocation */}
+          {/* Connected wallet status: owned / max */}
           {isConnected && userTotalCap > 0 && (
             <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-50 to-lime-50 dark:from-emerald-900/40 dark:to-lime-900/40 border-2 border-emerald-200/60 dark:border-emerald-700/60 shadow-lg flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -839,9 +851,6 @@ export function MintComponent() {
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-200 uppercase tracking-wide">
                     Your GTD Status
-                  </span>
-                  <span className="text-sm text-gray-700 dark:text-gray-200">
-                    You currently hold
                   </span>
                 </div>
               </div>
