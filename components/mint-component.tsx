@@ -711,6 +711,14 @@ export function MintComponent() {
     ? maxAllowed
     : mintedCount + userRemainingMints
 
+  const { data: walletBalance } = useReadContract({
+    ...nftContract,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address) },
+  })
+  const ownedNftCount = walletBalance !== undefined ? Number(walletBalance) : 0
+
   const phaseMaxPerTx = Math.max(0, phaseData ? Number(phaseData[4]) : activePhase.maxPerTx)
   const maxSelectableMint = isEligible ? Math.max(0, Math.min(userRemainingMints, phaseMaxPerTx)) : 0
 
@@ -854,8 +862,13 @@ export function MintComponent() {
                   </span>
                 </div>
               </div>
-              <div className="text-2xl font-black text-emerald-600 dark:text-emerald-300">
-                {mintedCount} / {userTotalCap}
+              <div className="text-right">
+                <div className="text-2xl font-black text-emerald-600 dark:text-emerald-300">
+                  {mintedCount} / {userTotalCap}
+                </div>
+                <div className="text-xs font-medium text-emerald-700 dark:text-emerald-200">
+                  Owned NFTs: {ownedNftCount}
+                </div>
               </div>
             </div>
           )}
