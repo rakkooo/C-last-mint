@@ -345,13 +345,6 @@ export function MintComponent() {
     setIsActive(now >= startTime && now < endTime)
   }, [phaseData, now])
 
-  const { data: mintedAmount, refetch: refetchMintedAmount } = useReadContract({
-    ...nftContract,
-    functionName: "mintedPerPhase",
-    args: [activePhaseId, address!],
-    query: { enabled: !!address && isActive && isConnected },
-  })
-
   const { data: remainingMints, refetch: refetchRemainingMints } = useReadContract({
     ...nftContract,
     functionName: "getRemainingMints",
@@ -371,11 +364,10 @@ export function MintComponent() {
   const effectiveIsApproved = approvalOverrides[lowerSelectedCollection] ?? Boolean(isApprovedForAll)
 
   useEffect(() => {
-    if (address && isActive && isConnected) {
-      refetchMintedAmount()
-      if (maxAllowed > 0) refetchRemainingMints()
+    if (address && isActive && isConnected && maxAllowed > 0) {
+      refetchRemainingMints()
     }
-  }, [address, isActive, maxAllowed, refetchMintedAmount, refetchRemainingMints, isConnected])
+  }, [address, isActive, maxAllowed, refetchRemainingMints, isConnected])
 
   const showMintSuccessToast = useCallback(
     (hash: `0x${string}`, details?: { quantity?: bigint; firstTokenId?: bigint; tokenId?: bigint }) => {
@@ -557,7 +549,6 @@ export function MintComponent() {
       try {
         await Promise.all([
           refetch(),
-          refetchMintedAmount(),
           maxAllowed > 0 ? refetchRemainingMints() : Promise.resolve(null),
         ])
       } catch {
@@ -664,7 +655,6 @@ export function MintComponent() {
       try {
         await Promise.all([
           refetch(),
-          refetchMintedAmount(),
           maxAllowed > 0 ? refetchRemainingMints() : Promise.resolve(null),
           (async () => { await refetchApproval() })(),
         ])
@@ -695,21 +685,6 @@ export function MintComponent() {
     () => isConnected && address?.toLowerCase() === CONTRACT_OWNER_ADDRESS.toLowerCase(),
     [isConnected, address],
   )
-
-  // UX: display "owned / max" for the connected wallet.
-  // WL phase: we already know "maxAllowed" and "userRemainingMints"
-  //   minted = maxAllowed - userRemainingMints
-  //   total cap = maxAllowed
-  // non-WL phase: fall back to on-chain mintedAmount + remainingMints
-  const mintedCount = isWhitelistPhase
-    ? Math.max(0, Math.min(maxAllowed, maxAllowed - userRemainingMints))
-    : mintedAmount !== undefined
-      ? Number(mintedAmount)
-      : 0
-
-  const userTotalCap = isWhitelistPhase
-    ? maxAllowed
-    : mintedCount + userRemainingMints
 
   const { data: walletBalance } = useReadContract({
     ...nftContract,
@@ -849,8 +824,8 @@ export function MintComponent() {
             </div>
           </div>
 
-          {/* Connected wallet status: owned / max */}
-          {isConnected && userTotalCap > 0 && (
+          {/* Connected wallet status: owned count */}
+          {isConnected && (
             <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-50 to-lime-50 dark:from-emerald-900/40 dark:to-lime-900/40 border-2 border-emerald-200/60 dark:border-emerald-700/60 shadow-lg flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/90">
@@ -858,17 +833,15 @@ export function MintComponent() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-200 uppercase tracking-wide">
-                    Your GTD Status
+                    Owned in Wallet
                   </span>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-black text-emerald-600 dark:text-emerald-300">
-                  {mintedCount} / {userTotalCap}
+                  {ownedNftCount}
                 </div>
-                <div className="text-xs font-medium text-emerald-700 dark:text-emerald-200">
-                  Owned NFTs: {ownedNftCount}
-                </div>
+                <div className="text-xs font-medium text-emerald-700 dark:text-emerald-200">Your GTD Status</div>
               </div>
             </div>
           )}
