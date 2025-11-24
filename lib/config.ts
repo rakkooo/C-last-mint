@@ -30,7 +30,7 @@ export const monadTestnet = {
 } as const
 
 // Contract addresses
-const DEFAULT_NFT_ADDRESS = "0x7392a5A040eca9e62f878Bc94D5817Df07105FAC"
+const DEFAULT_NFT_ADDRESS = "0xccccb19a6dc7277E8489f1DB9846A2327cAaCCcC"
 const DEFAULT_OWNER_ADDRESS = "0xab2967A1c1Bc427f08CBA864A841746C8eaA6d05"
 
 export const NFT_CONTRACT_ADDRESS: Address = (process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS ||
@@ -630,6 +630,12 @@ export const ERC721A_WALLET_OF_OWNER_ABI = [
 
 export type PhaseKey = "wl" | "fcfs"
 
+// Optional fallback start/end timestamps (seconds) for UI when on-chain read fails or is unset
+const ENV_WL_START = Number(process.env.NEXT_PUBLIC_WL_START_TIMESTAMP || 0)
+const ENV_WL_END = Number(process.env.NEXT_PUBLIC_WL_END_TIMESTAMP || 0)
+const ENV_FCFS_START = Number(process.env.NEXT_PUBLIC_FCFS_START_TIMESTAMP || 0)
+const ENV_FCFS_END = Number(process.env.NEXT_PUBLIC_FCFS_END_TIMESTAMP || 0)
+
 // Feature flag: enable or disable Burn to Mint UI/logic
 export const ENABLE_BURN_TO_MINT = (process.env.NEXT_PUBLIC_ENABLE_BURN_TO_MINT ?? "true").toLowerCase() !== "false"
 
@@ -647,6 +653,8 @@ export const PHASES_CONFIG: Record<
     maxPerTx: number
     root: string // 0x00.. means public-like (FCFS/Public)
     proofFile?: string // only for WL phases
+    startTimeFallback?: number // seconds
+    endTimeFallback?: number // seconds
   }
 > = {
   wl: {
@@ -657,6 +665,8 @@ export const PHASES_CONFIG: Record<
     maxPerTx: 10,
     root: "0x9ad49be778b04d20e16a5a66d3d14207da785be5fcc4ccd0bbe375726b75546c",
     proofFile: "/merkle/wl_proof.json",
+    startTimeFallback: Number.isFinite(ENV_WL_START) && ENV_WL_START > 0 ? ENV_WL_START : undefined,
+    endTimeFallback: Number.isFinite(ENV_WL_END) && ENV_WL_END > 0 ? ENV_WL_END : undefined,
   },
   fcfs: {
     id: 1,
@@ -665,5 +675,7 @@ export const PHASES_CONFIG: Record<
     cap: 5000,
     maxPerTx: 10,
     root: "0x0000000000000000000000000000000000000000000000000000000000000000",
+    startTimeFallback: Number.isFinite(ENV_FCFS_START) && ENV_FCFS_START > 0 ? ENV_FCFS_START : undefined,
+    endTimeFallback: Number.isFinite(ENV_FCFS_END) && ENV_FCFS_END > 0 ? ENV_FCFS_END : undefined,
   },
 }

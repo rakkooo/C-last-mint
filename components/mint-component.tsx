@@ -198,8 +198,11 @@ export function MintComponent() {
     return Number(contractData[1].result)
   }, [contractData])
 
-  const startTime = phaseData ? Number(phaseData[5]) : 0
-  const endTime = phaseData ? Number(phaseData[6]) : 0
+  // Prefer on-chain start/end; fall back to config-provided timestamps when unavailable
+  const onchainStart = phaseData ? Number(phaseData[5]) : 0
+  const onchainEnd = phaseData ? Number(phaseData[6]) : 0
+  const startTime = onchainStart > 0 ? onchainStart : activePhase.startTimeFallback || 0
+  const endTime = onchainEnd > 0 ? onchainEnd : activePhase.endTimeFallback || 0
   const phaseStatus = useMemo<"unknown" | "upcoming" | "active" | "ended">(() => {
     const hasStart = startTime > 0
     const hasEnd = endTime > 0
