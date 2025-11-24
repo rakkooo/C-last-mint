@@ -452,8 +452,10 @@ export function MintComponent() {
     })
   }, [maxSelectableMint])
 
+  const startTime = phaseData ? Number(phaseData[5]) : 0
   const endTime = phaseData ? Number(phaseData[6]) : 0
   const timeRemaining = endTime - now
+  const timeUntilStart = startTime > 0 ? startTime - now : 0
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -513,6 +515,18 @@ export function MintComponent() {
             </div>
           </div>
 
+          {!isActive && timeUntilStart > 0 && (
+            <div className="flex items-center justify-center gap-3 text-base font-bold text-gray-700 dark:text-gray-300 p-6 rounded-3xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 border-2 border-amber-200/50 dark:border-amber-800/50 shadow-lg">
+              <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              <span>
+                Phase starts in:{" "}
+                <strong className="text-amber-600 dark:text-amber-400">
+                  {formatDuration(timeUntilStart)}
+                </strong>
+              </span>
+            </div>
+          )}
+
           {isActive && timeRemaining > 0 && (
             <div className="flex items-center justify-center gap-3 text-base font-bold text-gray-700 dark:text-gray-300 p-6 rounded-3xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg">
               <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -526,27 +540,45 @@ export function MintComponent() {
           )}
         </div>
 
-        {!isConnected ? (
-            <div className="text-center py-16">
-              <Wallet className="h-20 w-20 mx-auto mb-6 text-purple-400 dark:text-purple-600" />
-              <p className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-3">Connect Your Wallet</p>
-              <p className="text-base text-gray-500 dark:text-gray-400">Get started by connecting your wallet to mint NFTs</p>
-            </div>
-          ) : !isActive ? (
-            <div className="text-center py-16">
-              <Alert className="border-2 rounded-3xl shadow-lg">
-                <Clock className="h-6 w-6" />
-                <AlertTitle className="text-xl font-bold">Minting Not Active</AlertTitle>
-                <AlertDescription>Minting is currently closed. Please check back later.</AlertDescription>
-              </Alert>
-            </div>
-          ) : isSoldOut ? (
+        {!isActive ? (
+          <div className="text-center py-16">
+            <Alert className="border-2 rounded-3xl shadow-lg">
+              <Clock className="h-6 w-6" />
+              <AlertTitle className="text-xl font-bold">Minting Not Active</AlertTitle>
+              <AlertDescription>
+                {timeUntilStart > 0
+                  ? `Minting opens in ${formatDuration(timeUntilStart)}.`
+                  : "Minting is currently closed. Please check back later."}
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : isSoldOut ? (
             <div className="text-center py-8">
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertTitle>Sold Out</AlertTitle>
                 <AlertDescription>All NFTs have been minted!</AlertDescription>
               </Alert>
+            </div>
+          ) : !isConnected ? (
+            <div className="text-center py-16 space-y-4">
+              <Wallet className="h-20 w-20 mx-auto mb-6 text-purple-400 dark:text-purple-600" />
+              <div className="space-y-2">
+                <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">Connect Your Wallet</p>
+                <p className="text-base text-gray-500 dark:text-gray-400">
+                  Connect to mint once the phase is active{isWhitelistPhase ? " and check your eligibility" : ""}.
+                </p>
+              </div>
+              <div>
+                <Button
+                  onClick={() => open()}
+                  size="lg"
+                  className="gap-2 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all rounded-2xl px-8 py-6 text-lg font-bold"
+                >
+                  <Wallet className="h-5 w-5" />
+                  Connect Wallet
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
