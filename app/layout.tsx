@@ -9,7 +9,7 @@ import { Suspense } from "react"
 
 export const metadata: Metadata = {
   title: "C's Family Mainnet NFT",
-  description: "Monad Testnet NFT Minting",
+  description: "Monad Mainnet NFT Minting",
   generator: "v0.app",
 }
 

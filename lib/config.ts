@@ -11,7 +11,6 @@ const ENV_RPC = (process.env.NEXT_PUBLIC_CHAIN_RPC_HTTP || "https://testnet-rpc.
   .filter(Boolean)
 const ENV_EXPLORER_NAME = process.env.NEXT_PUBLIC_CHAIN_EXPLORER_NAME || "Monad Explorer"
 const ENV_EXPLORER_URL = process.env.NEXT_PUBLIC_CHAIN_EXPLORER_URL || "https://testnet.monadexplorer.com"
-const ENV_IS_TESTNET = (process.env.NEXT_PUBLIC_CHAIN_IS_TESTNET || "true").toLowerCase() !== "false"
 
 export const monadTestnet = {
   id: ENV_CHAIN_ID,
@@ -27,7 +26,7 @@ export const monadTestnet = {
   blockExplorers: {
     default: { name: ENV_EXPLORER_NAME, url: ENV_EXPLORER_URL },
   },
-  testnet: ENV_IS_TESTNET,
+  testnet: false,
 } as const
 
 // Contract addresses
