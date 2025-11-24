@@ -767,7 +767,7 @@ export function MintComponent() {
         <CardHeader className="space-y-4 pb-4 bg-gradient-to-br from-purple-50/50 via-pink-50/50 to-purple-50/50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-purple-950/30">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <CardTitle className="text-4xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
-              C's Family GTD NFT
+              C's Family Mainnet NFT
             </CardTitle>
             {isConnected ? (
               <div className="flex items-center gap-3 ml-auto">
@@ -796,11 +796,6 @@ export function MintComponent() {
             )}
           </div>
 
-          {/* Subtitle / description under the title */}
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            C's Family NFT will be airdropped on mainnet to wallets holding this GTD NFT.
-          </p>
-
           {isWrongNetwork && (
             <Alert variant="destructive">
               <Terminal className="h-4 w-4" />
@@ -823,28 +818,6 @@ export function MintComponent() {
               </span>
             </div>
           </div>
-
-          {/* Connected wallet status: owned count */}
-          {isConnected && (
-            <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-50 to-lime-50 dark:from-emerald-900/40 dark:to-lime-900/40 border-2 border-emerald-200/60 dark:border-emerald-700/60 shadow-lg flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/90">
-                  <CheckCircle className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-200 uppercase tracking-wide">
-                    Owned in Wallet
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-black text-emerald-600 dark:text-emerald-300">
-                  {ownedNftCount}
-                </div>
-                <div className="text-xs font-medium text-emerald-700 dark:text-emerald-200">Your GTD Status</div>
-              </div>
-            </div>
-          )}
 
           {isActive && timeRemaining > 0 && (
             <div className="flex items-center justify-center gap-3 text-base font-bold text-gray-700 dark:text-gray-300 p-6 rounded-3xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg">

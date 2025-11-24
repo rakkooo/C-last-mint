@@ -8,7 +8,7 @@ import "./globals.css"
 import { Suspense } from "react"
 
 export const metadata: Metadata = {
-  title: "C's Family GTD NFT",
+  title: "C's Family Mainnet NFT",
   description: "Monad Testnet NFT Minting",
   generator: "v0.app",
 }
