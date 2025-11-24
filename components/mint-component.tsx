@@ -85,7 +85,6 @@ export function MintComponent() {
 
   const [merkleProof, setMerkleProof] = useState<string[]>([])
   const [maxAllowed, setMaxAllowed] = useState(0)
-  const [isActive, setIsActive] = useState(false)
   const [mintQuantity, setMintQuantity] = useState(1)
   const [now, setNow] = useState(Math.floor(Date.now() / 1000))
   const [mintStatus, setMintStatus] = useState<"idle" | "signing" | "confirming">("idle")
@@ -199,12 +198,19 @@ export function MintComponent() {
     return Number(contractData[1].result)
   }, [contractData])
 
-  useEffect(() => {
-    if (!phaseData) return
-    const startTime = Number(phaseData[5])
-    const endTime = Number(phaseData[6])
-    setIsActive(now >= startTime && now < endTime)
-  }, [phaseData, now])
+  const startTime = phaseData ? Number(phaseData[5]) : 0
+  const endTime = phaseData ? Number(phaseData[6]) : 0
+  const phaseStatus = useMemo<"unknown" | "upcoming" | "active" | "ended">(() => {
+    const hasStart = startTime > 0
+    const hasEnd = endTime > 0
+    if (hasStart && now < startTime) return "upcoming"
+    if (hasEnd && now >= endTime) return "ended"
+    if (hasStart || hasEnd) return "active"
+    return "unknown"
+  }, [startTime, endTime, now])
+  const isActive = phaseStatus === "active"
+  const timeUntilStart = startTime > 0 && now < startTime ? startTime - now : 0
+  const timeUntilEnd = endTime > 0 && now < endTime ? endTime - now : 0
 
   const { data: remainingMints, refetch: refetchRemainingMints } = useReadContract({
     ...nftContract,
@@ -272,7 +278,6 @@ export function MintComponent() {
     setMerkleProof([])
     setMaxAllowed(0)
     setMintQuantity(1)
-    setIsActive(false)
     setMintStatus("idle")
   }
 
@@ -452,11 +457,6 @@ export function MintComponent() {
     })
   }, [maxSelectableMint])
 
-  const startTime = phaseData ? Number(phaseData[5]) : 0
-  const endTime = phaseData ? Number(phaseData[6]) : 0
-  const timeRemaining = endTime - now
-  const timeUntilStart = startTime > 0 ? startTime - now : 0
-
   return (
     <div className="w-full max-w-3xl mx-auto">
       <Card className="shadow-2xl border-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl overflow-hidden">
@@ -527,13 +527,13 @@ export function MintComponent() {
             </div>
           )}
 
-          {isActive && timeRemaining > 0 && (
+          {isActive && timeUntilEnd > 0 && (
             <div className="flex items-center justify-center gap-3 text-base font-bold text-gray-700 dark:text-gray-300 p-6 rounded-3xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-200/50 dark:border-blue-800/50 shadow-lg">
               <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               <span>
                 Phase ends in:{" "}
                 <strong className="text-blue-600 dark:text-blue-400">
-                  {formatDuration(timeRemaining)}
+                  {formatDuration(timeUntilEnd)}
                 </strong>
               </span>
             </div>
