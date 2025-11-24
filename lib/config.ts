@@ -1,16 +1,16 @@
 import type { Address } from "viem"
 
 // Chain config (env-overridable). Named `monadTestnet` for backward-compat exports.
-const ENV_CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 10143)
-const ENV_CHAIN_NAME = process.env.NEXT_PUBLIC_CHAIN_NAME || "Monad Testnet"
+const ENV_CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 143)
+const ENV_CHAIN_NAME = process.env.NEXT_PUBLIC_CHAIN_NAME || "Monad Mainnet"
 const ENV_SYMBOL = process.env.NEXT_PUBLIC_CHAIN_SYMBOL || "MON"
 const ENV_DECIMALS = Number(process.env.NEXT_PUBLIC_CHAIN_DECIMALS || 18)
-const ENV_RPC = (process.env.NEXT_PUBLIC_CHAIN_RPC_HTTP || "https://testnet-rpc.monad.xyz")
+const ENV_RPC = (process.env.NEXT_PUBLIC_CHAIN_RPC_HTTP || "https://rpc3.monad.xyz")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean)
 const ENV_EXPLORER_NAME = process.env.NEXT_PUBLIC_CHAIN_EXPLORER_NAME || "Monad Explorer"
-const ENV_EXPLORER_URL = process.env.NEXT_PUBLIC_CHAIN_EXPLORER_URL || "https://testnet.monadexplorer.com"
+const ENV_EXPLORER_URL = process.env.NEXT_PUBLIC_CHAIN_EXPLORER_URL || "https://monadscan.com"
 
 export const monadTestnet = {
   id: ENV_CHAIN_ID,
@@ -661,9 +661,9 @@ export const PHASES_CONFIG: Record<
     id: 0,
     name: "WL",
     price: "0",
-    cap: 5000,
+    cap: 1500,
     maxPerTx: 10,
-    root: "0x9ad49be778b04d20e16a5a66d3d14207da785be5fcc4ccd0bbe375726b75546c",
+    root: "0x204171890c1ba5b6e061a5b1ce2e595788047ccff6af8f4f5dd6b0793197c05d",
     proofFile: "/merkle/wl_proof.json",
     startTimeFallback: Number.isFinite(ENV_WL_START) && ENV_WL_START > 0 ? ENV_WL_START : undefined,
     endTimeFallback: Number.isFinite(ENV_WL_END) && ENV_WL_END > 0 ? ENV_WL_END : undefined,
@@ -671,7 +671,7 @@ export const PHASES_CONFIG: Record<
   fcfs: {
     id: 1,
     name: "FCFS",
-    price: "0.01",
+    price: "0",
     cap: 5000,
     maxPerTx: 10,
     root: "0x0000000000000000000000000000000000000000000000000000000000000000",
