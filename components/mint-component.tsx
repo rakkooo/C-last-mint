@@ -7,50 +7,30 @@ import { decodeEventLog, parseEther, keccak256, numberToHex, padHex, concatHex }
 import toast from "react-hot-toast"
 import { useInterval } from "usehooks-ts"
 import dynamic from "next/dynamic"
-import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import {
   Terminal,
   CheckCircle,
   Loader,
   Wallet,
-  Flame,
   PartyPopper,
   Clock,
   ExternalLink,
-  Shield,
   LogOut,
 } from "lucide-react"
 
 import {
   MONAD_PHASED_NFT_ABI,
-  ERC721_ABI,
-  ERC721A_TOKENS_OF_OWNER_ABI,
-  ERC721A_WALLET_OF_OWNER_ABI,
   NFT_CONTRACT_ADDRESS,
-  BURN_COLLECTIONS,
   PHASES_CONFIG,
   ACTIVE_PHASE_KEY,
-  ENABLE_BURN_TO_MINT,
   monadTestnet,
   CONTRACT_OWNER_ADDRESS,
 } from "@/lib/config"
-import { toGatewayUrl } from "@/lib/utils"
 
 const MAX_TOKEN_ENUMERATION = 10
 
@@ -106,26 +86,10 @@ export function MintComponent() {
   const [merkleProof, setMerkleProof] = useState<string[]>([])
   const [maxAllowed, setMaxAllowed] = useState(0)
   const [isActive, setIsActive] = useState(false)
-  const [selectedBurnCollection, setSelectedBurnCollection] = useState<string>(BURN_COLLECTIONS[0].address)
-  const [selectedBurnTokenId, setSelectedBurnTokenId] = useState<string>("")
-  const [manualTokenId, setManualTokenId] = useState<string>("")
-  const [useManualInput, setUseManualInput] = useState(false)
-  const [enumeratedTokenIds, setEnumeratedTokenIds] = useState<string[]>([])
   const [mintQuantity, setMintQuantity] = useState(1)
-  const [showBurnConfirm, setShowBurnConfirm] = useState(false)
   const [now, setNow] = useState(Math.floor(Date.now() / 1000))
   const [mintStatus, setMintStatus] = useState<"idle" | "signing" | "confirming">("idle")
-  const [burnStatus, setBurnStatus] = useState<"idle" | "signing" | "confirming">("idle")
-  const [approvalStatus, setApprovalStatus] = useState<"idle" | "signing" | "confirming">("idle")
-  const [approvalOverrides, setApprovalOverrides] = useState<Record<string, boolean>>({})
-  const [enumerationSupported, setEnumerationSupported] = useState<boolean | null>(null)
-  const [collectionImageUrl, setCollectionImageUrl] = useState<string>("")
-  const [selectedTokenImageUrl, setSelectedTokenImageUrl] = useState<string>("")
-  const [hasAnyBurnNFTs, setHasAnyBurnNFTs] = useState<boolean>(false)
-  const [isOwnedCheckLoading, setIsOwnedCheckLoading] = useState<boolean>(false)
   const [proofRoot, setProofRoot] = useState<string | null>(null)
-  const [ownedContracts, setOwnedContracts] = useState<Set<string>>(new Set())
-  const [collectionChangeTimestamp, setCollectionChangeTimestamp] = useState(0)
 
   useInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000)
 
@@ -214,109 +178,6 @@ export function MintComponent() {
     [hashPairSorted],
   )
 
-  const lowerSelectedCollection = useMemo(() => selectedBurnCollection.toLowerCase(), [selectedBurnCollection])
-
-  const selectedBurnContract = {
-    address: selectedBurnCollection as `0x${string}`,
-    abi: ERC721_ABI,
-  } as const
-
-  // Remove on-chain enumeration detection. Alchemy API is the sole source for owned IDs.
-  useEffect(() => {
-    setEnumerationSupported(null)
-  }, [selectedBurnCollection])
-
-  // Fetch owned token IDs via server API (Alchemy) only if the selected collection is owned
-  useEffect(() => {
-    if (!address || !isConnected || !selectedBurnCollection) {
-      setEnumeratedTokenIds([])
-      setSelectedBurnTokenId("")
-      return
-    }
-    // Only run when owned
-    const isOwned = ownedContracts.has(selectedBurnCollection.toLowerCase())
-    if (!isOwned) {
-      setEnumeratedTokenIds([])
-      setSelectedBurnTokenId("")
-      return
-    }
-    let cancelled = false
-    const run = async () => {
-      try {
-        const url = `/api/owned-ids?c=${selectedBurnCollection}&u=${address}&limit=${MAX_TOKEN_ENUMERATION}`
-        const res = await fetch(url, { cache: 'no-store' })
-        if (!res.ok) throw new Error('failed')
-        const json = await res.json()
-        const ids: string[] = (json?.ids as string[]) || []
-        if (!cancelled) {
-          setEnumeratedTokenIds(ids)
-          if (!selectedBurnTokenId && ids.length > 0) setSelectedBurnTokenId(ids[0])
-        }
-      } catch {
-        if (!cancelled) {
-          setEnumeratedTokenIds([])
-          setSelectedBurnTokenId("")
-        }
-      }
-    }
-    run()
-    return () => {
-      cancelled = true
-    }
-  }, [address, isConnected, selectedBurnCollection, collectionChangeTimestamp, selectedBurnTokenId, ownedContracts])
-
-  // Alchemy-only: no client-side on-chain fallback
-
-  // Keep dropdown UX; no forced manual input even if Enumerable is unsupported
-
-  // Read collection-level metadata via contractURI and display image/logo
-  const { data: contractUriRaw } = useReadContract({
-    ...selectedBurnContract,
-    functionName: "contractURI",
-    query: { enabled: !!selectedBurnCollection },
-  })
-  useEffect(() => {
-    setCollectionImageUrl("")
-    const uri = (contractUriRaw as string) || ""
-    if (!uri) return
-    const resolved = toGatewayUrl(uri)
-    fetch(resolved)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        if (!json) return
-        const img = toGatewayUrl(json.image || json.logo || json.image_url)
-        if (img) setCollectionImageUrl(img)
-      })
-      .catch(() => {})
-  }, [contractUriRaw, selectedBurnCollection])
-
-  // Resolve token image for preview in confirmation dialog
-  const tokenIdToPreview = useMemo(() => (useManualInput ? manualTokenId : selectedBurnTokenId).trim(), [
-    useManualInput,
-    manualTokenId,
-    selectedBurnTokenId,
-  ])
-  const { data: tokenUriRaw } = useReadContract({
-    ...selectedBurnContract,
-    functionName: "tokenURI",
-    args: tokenIdToPreview && /^\d+$/.test(tokenIdToPreview) ? [BigInt(tokenIdToPreview)] : undefined,
-    query: { enabled: !!tokenIdToPreview && /^\d+$/.test(tokenIdToPreview) },
-  })
-  useEffect(() => {
-    setSelectedTokenImageUrl("")
-    const uri = (tokenUriRaw as string) || ""
-    if (!uri) return
-    const resolved = toGatewayUrl(uri)
-    fetch(resolved)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        if (!json) return
-        const img = toGatewayUrl(json.image || json.image_url)
-        if (img) setSelectedTokenImageUrl(img)
-      })
-      .catch(() => {})
-  }, [tokenUriRaw])
-
   const activePhase = PHASES_CONFIG[ACTIVE_PHASE_KEY]
   const activePhaseId = activePhase.id
 
@@ -353,15 +214,6 @@ export function MintComponent() {
       enabled: !!address && isActive && isConnected && (activePhase.proofFile ? maxAllowed > 0 : true),
     },
   })
-
-  const { data: isApprovedForAll, refetch: refetchApproval } = useReadContract({
-    ...selectedBurnContract,
-    functionName: "isApprovedForAll",
-    args: [address!, NFT_CONTRACT_ADDRESS],
-    query: { enabled: !!address && isConnected },
-  })
-
-  const effectiveIsApproved = approvalOverrides[lowerSelectedCollection] ?? Boolean(isApprovedForAll)
 
   useEffect(() => {
     if (address && isActive && isConnected && maxAllowed > 0) {
@@ -419,16 +271,9 @@ export function MintComponent() {
     // Reset all states
     setMerkleProof([])
     setMaxAllowed(0)
-    setSelectedBurnTokenId("")
-    setManualTokenId("")
-    setUseManualInput(false)
-    // no-op
     setMintQuantity(1)
     setIsActive(false)
-    setApprovalOverrides({})
     setMintStatus("idle")
-    setBurnStatus("idle")
-    setApprovalStatus("idle")
   }
 
   const handleNormalMint = async () => {
@@ -562,113 +407,6 @@ export function MintComponent() {
     }
   }
 
-  const handleApproveAll = async () => {
-    if (!walletClient || !publicClient) {
-      toast.error("Wallet client is not ready. Please reconnect your wallet.")
-      return
-    }
-
-    try {
-      setApprovalStatus("signing")
-      const hash = await walletClient.writeContract({
-        address: selectedBurnCollection as `0x${string}`,
-        abi: ERC721_ABI,
-        functionName: "setApprovalForAll",
-        args: [NFT_CONTRACT_ADDRESS, true],
-      })
-
-      setApprovalStatus("confirming")
-      await publicClient.waitForTransactionReceipt({ hash })
-      toast.success("Collection approved successfully.")
-      setApprovalOverrides((prev) => ({ ...prev, [lowerSelectedCollection]: true }))
-      refetchApproval()
-    } catch (error) {
-      console.error("Approval failed", error)
-      toast.error(getFriendlyErrorMessage(error), { duration: 6000 })
-    } finally {
-      setApprovalStatus("idle")
-    }
-  }
-
-  const handleBurnMintConfirm = () => {
-    setShowBurnConfirm(true)
-  }
-
-  const handleBurnMint = async () => {
-    setShowBurnConfirm(false)
-
-    if (!walletClient || !publicClient) {
-      toast.error("Wallet client is not ready. Please reconnect your wallet.")
-      return
-    }
-
-    if (isWrongNetwork) {
-      toast.error(`Please switch to the ${monadTestnet.name}.`)
-      return
-    }
-
-    const tokenIdToUse = useManualInput ? manualTokenId : selectedBurnTokenId
-
-    if (!tokenIdToUse) {
-      toast.error("Select an NFT to burn.")
-      return
-    }
-
-    try {
-      setBurnStatus("signing")
-      const tokenId = tokenIdToUse.trim()
-      if (!/^\d+$/.test(tokenId)) {
-        toast.error("Invalid token ID.")
-        setBurnStatus("idle")
-        return
-      }
-
-      const hash = await walletClient.writeContract({
-        address: NFT_CONTRACT_ADDRESS,
-        abi: MONAD_PHASED_NFT_ABI,
-        functionName: "burnToMint",
-        args: [selectedBurnCollection as `0x${string}`, BigInt(tokenId)],
-      })
-
-      setBurnStatus("confirming")
-      const receipt = await publicClient.waitForTransactionReceipt({ hash })
-      let mintedTokenId: bigint | undefined
-
-      for (const log of receipt.logs) {
-        if (log.address.toLowerCase() !== NFT_CONTRACT_ADDRESS.toLowerCase()) continue
-        try {
-          const decoded = decodeEventLog({ abi: MONAD_PHASED_NFT_ABI, data: log.data, topics: log.topics })
-          if (decoded.eventName === "BurnToMint") {
-            mintedTokenId = decoded.args?.mintedTokenId
-            break
-          }
-        } catch {
-          /* noop */
-        }
-      }
-
-      showMintSuccessToast(hash, { tokenId: mintedTokenId })
-
-      setSelectedBurnTokenId("")
-      setManualTokenId("")
-      // Refresh reads (including remaining mints, which consider supply)
-      try {
-        await Promise.all([
-          refetch(),
-          maxAllowed > 0 ? refetchRemainingMints() : Promise.resolve(null),
-          (async () => { await refetchApproval() })(),
-        ])
-      } catch {
-        /* noop */
-      }
-    } catch (error) {
-      console.error("Burn to mint failed", error)
-      toast.error(getFriendlyErrorMessage(error), { duration: 6000 })
-    } finally {
-      setBurnStatus("idle")
-    }
-  }
-
   const isWrongNetwork = useMemo(() => isConnected && chain?.id !== monadTestnet.id, [isConnected, chain])
   const isSoldOut = phaseData ? phaseData[3] >= phaseData[2] : false
   const isWhitelistPhase = Boolean(activePhase.proofFile)
@@ -678,8 +416,6 @@ export function MintComponent() {
     remainingMints !== undefined ? Number(remainingMints) : 0
   const userRemainingMints = Number.isFinite(rawRemainingMints) ? Math.max(0, rawRemainingMints) : 0
   const hasMintedMax = isEligible && userRemainingMints <= 0
-
-  const hasBurnNFTs = hasAnyBurnNFTs
 
   const isOwner = useMemo(
     () => isConnected && address?.toLowerCase() === CONTRACT_OWNER_ADDRESS.toLowerCase(),
@@ -718,48 +454,6 @@ export function MintComponent() {
 
   const endTime = phaseData ? Number(phaseData[6]) : 0
   const timeRemaining = endTime - now
-
-  const selectedCollectionName =
-    BURN_COLLECTIONS.find((c) => c.address.toLowerCase() === selectedBurnCollection.toLowerCase())?.name || ""
-
-  const totalTokenCount = enumeratedTokenIds.length
-
-  // Check which collections the user owns (Alchemy), to avoid calling per-collection API for non-owned
-  useEffect(() => {
-    if (!address || !isConnected) {
-      setHasAnyBurnNFTs(false)
-      setOwnedContracts(new Set())
-      setIsOwnedCheckLoading(false)
-      return
-    }
-    let cancelled = false
-    const run = async () => {
-      setIsOwnedCheckLoading(true)
-      try {
-        const params = BURN_COLLECTIONS.map((c) => `c=${c.address}`).join("&")
-        const url = `/api/owned-check?${params}&u=${address}`
-        const res = await fetch(url, { cache: 'no-store' })
-        if (!res.ok) throw new Error('failed')
-        const json = await res.json()
-        const addrs: string[] = (json?.owned as string[]) || []
-        if (!cancelled) {
-          setHasAnyBurnNFTs(addrs.length > 0)
-          setOwnedContracts(new Set(addrs.map((a) => a.toLowerCase())))
-        }
-      } catch {
-        if (!cancelled) {
-          setHasAnyBurnNFTs(false)
-          setOwnedContracts(new Set())
-        }
-      } finally {
-        if (!cancelled) setIsOwnedCheckLoading(false)
-      }
-    }
-    run()
-    return () => {
-      cancelled = true
-    }
-  }, [address, isConnected])
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -856,15 +550,7 @@ export function MintComponent() {
             </div>
           ) : (
             <div className="space-y-6">
-              {isWhitelistPhase && isOwnedCheckLoading ? (
-                <div className="text-center py-8">
-                  <Alert>
-                    <Loader className="h-4 w-4 animate-spin" />
-                    <AlertTitle>Checking eligibility…</AlertTitle>
-                    <AlertDescription>Holdings and whitelist are being verified.</AlertDescription>
-                  </Alert>
-                </div>
-              ) : isWhitelistPhase && !isEligible && !hasBurnNFTs ? (
+              {isWhitelistPhase && !isEligible ? (
                 <div className="text-center py-8">
                   <Alert variant="destructive">
                     <Terminal className="h-4 w-4" />
@@ -873,316 +559,77 @@ export function MintComponent() {
                   </Alert>
                 </div>
               ) : (
-                <>
-                  {/* Show WL first if eligible, then Burn to Mint if has NFTs */}
-                  {isEligible && (
-                    <>
-                      {isWhitelistPhase ? (
-                        <div className="space-y-4 p-6 rounded-xl border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
-                          <h3 className="text-xl font-bold text-center flex items-center justify-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                            {activePhase.name} Mint
-                          </h3>
+                <div className="space-y-4 p-6 rounded-xl border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
+                  <h3 className="text-xl font-bold text-center flex items-center justify-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    {activePhase.name} Mint
+                  </h3>
 
-                          {hasMintedMax ? (
-                            <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                              <AlertTitle className="text-green-800 dark:text-green-300">Complete!</AlertTitle>
-                              <AlertDescription className="text-green-700 dark:text-green-400">
-                                You have minted all {maxAllowed} of your allocated NFTs.
-                              </AlertDescription>
-                            </Alert>
-                          ) : (
-                            <>
-                              <div className="text-center space-y-2">
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                  Minted: {maxAllowed - userRemainingMints} / {maxAllowed}
-                                </div>
-                                <div className="text-3xl font-bold text-green-600">FREE MINT</div>
-                              </div>
-
-                              <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  Select Quantity
-                                </label>
-                                <Select
-                                  value={mintQuantity.toString()}
-                                  onValueChange={(val) => setMintQuantity(Number(val))}
-                                >
-                                  <SelectTrigger className="w-full h-12">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {mintOptions.map((num) => (
-                                      <SelectItem key={num} value={num.toString()}>
-                                        {num} NFT{num > 1 ? "s" : ""}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              <Button
-                                className="w-full h-14 text-lg font-semibold"
-                                onClick={handleNormalMint}
-                                disabled={mintStatus !== "idle" || isWrongNetwork || hasMintedMax}
-                              >
-                                {mintStatus === "signing" ? (
-                                  <>
-                                    <Loader className="mr-2 h-5 w-5 animate-spin" />
-                                    Confirm in Wallet...
-                                  </>
-                                ) : mintStatus === "confirming" ? (
-                                  <>
-                                    <Loader className="mr-2 h-5 w-5 animate-spin" />
-                                    Minting...
-                                  </>
-                                ) : (
-                                  `Mint ${mintQuantity} NFT${mintQuantity > 1 ? "s" : ""}`
-                                )}
-                              </Button>
-                            </>
-                          )}
+                  <div className="text-center space-y-2">
+                    {isWhitelistPhase ? (
+                      <>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          Minted: {maxAllowed - userRemainingMints} / {maxAllowed}
                         </div>
-                      ) : (
-                        <div className="space-y-4 p-6 rounded-xl border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
-                          <h3 className="text-xl font-bold text-center flex items-center justify-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                            {activePhase.name} Mint
-                          </h3>
-
-                          <div className="text-center space-y-2">
-                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                              Remaining (per your limit): {userRemainingMints}
-                            </div>
-                            <div className="text-lg font-semibold">
-                              Price: {activePhase.price} {monadTestnet.nativeCurrency.symbol}
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                              Select Quantity
-                            </label>
-                            <Select
-                              value={mintQuantity.toString()}
-                              onValueChange={(val) => setMintQuantity(Number(val))}
-                            >
-                              <SelectTrigger className="w-full h-12">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {mintOptions.map((num) => (
-                                  <SelectItem key={num} value={num.toString()}>
-                                    {num} NFT{num > 1 ? "s" : ""}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <Button
-                            className="w-full h-14 text-lg font-semibold"
-                            onClick={handleNormalMint}
-                            disabled={mintStatus !== "idle" || isWrongNetwork || userRemainingMints <= 0}
-                          >
-                            {mintStatus === "signing" ? (
-                              <>
-                                <Loader className="mr-2 h-5 w-5 animate-spin" />
-                                Confirm in Wallet...
-                              </>
-                            ) : mintStatus === "confirming" ? (
-                              <>
-                                <Loader className="mr-2 h-5 w-5 animate-spin" />
-                                Minting...
-                              </>
-                            ) : (
-                              `Mint ${mintQuantity} NFT${mintQuantity > 1 ? "s" : ""}`
-                            )}
-                          </Button>
+                        <div className="text-3xl font-bold text-green-600">FREE MINT</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          Remaining (per your limit): {userRemainingMints}
                         </div>
-                      )}
-                    </>
-                  )}
-
-                  {ENABLE_BURN_TO_MINT && hasBurnNFTs && (
-                    <div className="space-y-4 p-6 rounded-xl border-2 border-orange-300 dark:border-orange-700 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30">
-                      <h3 className="text-xl font-bold text-center flex items-center justify-center gap-2 text-orange-600 dark:text-orange-400">
-                        <Flame className="h-5 w-5" />
-                        Burn to Mint
-                      </h3>
-
-                      <Alert>
-                        <CheckCircle className="h-4 w-4" />
-                        <AlertTitle>Eligible NFTs Found</AlertTitle>
-                        <AlertDescription>
-                          Found {totalTokenCount} token(s) in this collection.
-                        </AlertDescription>
-                      </Alert>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Select Collection
-                        </label>
-                        <Select
-                          value={selectedBurnCollection}
-                          onValueChange={(val) => {
-                            setSelectedBurnCollection(val)
-                            setSelectedBurnTokenId("")
-                            setEnumeratedTokenIds([])
-                            setManualTokenId("")
-                            setUseManualInput(false)
-                            // Delay token enumeration to prevent rapid API calls
-                            setTimeout(() => {
-                              setCollectionChangeTimestamp(Date.now())
-                            }, 300)
-                          }}
-                        >
-                          <SelectTrigger className="w-full h-12">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {BURN_COLLECTIONS.map((collection) => (
-                              <SelectItem key={collection.address} value={collection.address}>
-                                {collection.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {collectionImageUrl && (
-                          <div className="flex items-center gap-3 mt-2">
-                            <img src={collectionImageUrl} alt={selectedCollectionName} className="h-12 w-12 rounded-md object-cover" loading="eager" decoding="async" />
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{selectedCollectionName}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {false && (
-                        <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                           <input
-                             type="checkbox"
-                             id="manual-input-toggle"
-                             checked={useManualInput}
-                             onChange={(e) => setUseManualInput(e.target.checked)}
-                             className="h-4 w-4"
-                           />
-                           <label htmlFor="manual-input-toggle" className="text-sm text-gray-700 dark:text-gray-300">
-                              {`Enter token ID manually`}
-                        </label>
+                        <div className="text-lg font-semibold">
+                          Price: {activePhase.price} {monadTestnet.nativeCurrency.symbol}
                         </div>
-                      )}
+                      </>
+                    )}
+                  </div>
 
-                      {useManualInput ? (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Enter Token ID</label>
-                          <Input
-                            type="text"
-                            placeholder="Enter token ID (e.g., 1234)"
-                            value={manualTokenId}
-                            onChange={(e) => setManualTokenId(e.target.value)}
-                            className="w-full h-12"
-                          />
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            Enter the token ID of the NFT you want to burn.
-                          </p>
-                        </div>
-                      ) : enumeratedTokenIds.length > 0 ? (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Select Token ID
-                          </label>
-                          <Select value={selectedBurnTokenId} onValueChange={(val) => setSelectedBurnTokenId(val)}>
-                            <SelectTrigger className="w-full h-12">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {enumeratedTokenIds.map((id) => (
-                                <SelectItem key={id} value={id}>
-                                  #{id}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            {`Showing up to ${MAX_TOKEN_ENUMERATION} token(s).`}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Select Token ID
-                          </label>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {ownedContracts.has(selectedBurnCollection.toLowerCase())
-                              ? "Loading tokens..."
-                              : "No NFTs in this collection"}
-                          </div>
-                        </div>
-                      )}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Select Quantity
+                    </label>
+                    <Select
+                      value={mintQuantity.toString()}
+                      onValueChange={(val) => setMintQuantity(Number(val))}
+                    >
+                      <SelectTrigger className="w-full h-12">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mintOptions.map((num) => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} NFT{num > 1 ? "s" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      {!effectiveIsApproved ? (
-                        <Button
-                          className="w-full h-14 text-lg font-semibold gap-2"
-                          onClick={handleApproveAll}
-                          disabled={approvalStatus !== "idle" || isWrongNetwork || (enumeratedTokenIds.length <= 0 && !manualTokenId)}
-                        >
-                          {approvalStatus === "signing" ? (
-                            <>
-                              <Loader className="h-5 w-5 animate-spin" />
-                              Confirm in Wallet...
-                            </>
-                          ) : approvalStatus === "confirming" ? (
-                            <>
-                              <Loader className="h-5 w-5 animate-spin" />
-                              Approving...
-                            </>
-                          ) : (
-                            <>
-                              <Shield className="h-5 w-5" />
-                              {enumeratedTokenIds.length > 0 || manualTokenId ? "Approve Collection" : "No NFTs to Approve"}
-                            </>
-                          )}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="destructive"
-                          className="w-full h-14 text-lg font-semibold gap-2"
-                          onClick={handleBurnMintConfirm}
-                          disabled={
-                            burnStatus !== "idle" ||
-                            (!useManualInput && !selectedBurnTokenId) ||
-                            (useManualInput && !manualTokenId) ||
-                            isWrongNetwork
-                          }
-                        >
-                          {burnStatus === "signing" ? (
-                            <>
-                              <Loader className="h-5 w-5 animate-spin" />
-                              Confirm in Wallet...
-                            </>
-                          ) : burnStatus === "confirming" ? (
-                            <>
-                              <Loader className="h-5 w-5 animate-spin" />
-                              Burning...
-                            </>
-                          ) : (
-                            <>
-                              <Flame className="h-5 w-5" />
-                              Burn & Mint{" "}
-                              {useManualInput
-                                ? manualTokenId
-                                  ? `(#${manualTokenId})`
-                                  : ""
-                                : selectedBurnTokenId
-                                  ? `(#${selectedBurnTokenId})`
-                                  : ""}
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </>
+                  <Button
+                    className="w-full h-14 text-lg font-semibold"
+                    onClick={handleNormalMint}
+                    disabled={
+                      mintStatus !== "idle" ||
+                      isWrongNetwork ||
+                      (isWhitelistPhase ? hasMintedMax : userRemainingMints <= 0)
+                    }
+                  >
+                    {mintStatus === "signing" ? (
+                      <>
+                        <Loader className="mr-2 h-5 w-5 animate-spin" />
+                        Confirm in Wallet...
+                      </>
+                    ) : mintStatus === "confirming" ? (
+                      <>
+                        <Loader className="mr-2 h-5 w-5 animate-spin" />
+                        Minting...
+                      </>
+                    ) : (
+                      `Mint ${mintQuantity} NFT${mintQuantity > 1 ? "s" : ""}`
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
           )}
@@ -1190,36 +637,6 @@ export function MintComponent() {
       </Card>
 
       {isOwner && <AdminPanel onPhaseUpdate={refetch} />}
-
-      {/* Burn Confirmation Dialog */}
-      <AlertDialog open={showBurnConfirm} onOpenChange={setShowBurnConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Burn & Mint</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are about to burn 1 NFT from {selectedCollectionName} and mint a new one. This action is irreversible.
-              {selectedTokenImageUrl && (
-                <div className="mt-4 flex items-center gap-3">
-                  <img src={selectedTokenImageUrl} alt="Token preview" className="h-16 w-16 rounded-md object-cover" loading="eager" decoding="async" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Token preview</span>
-                </div>
-              )}
-              <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                <p className="text-sm font-medium text-orange-800 dark:text-orange-300">Token ID to burn:</p>
-                <p className="text-sm text-orange-600 dark:text-orange-400">
-                  {useManualInput ? manualTokenId || "-" : selectedBurnTokenId || "-"}
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBurnMint} className="bg-orange-600 hover:bg-orange-700">
-              Confirm Burn
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
